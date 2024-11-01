@@ -19,7 +19,7 @@ type VirtualMachineRequiredFields struct {
 	Name        string             `json:"name" validate:"required"`
 	MachineType *MachineTypeSchema `json:"machine_type" validate:"required"`
 	Image       *ImageSchema       `json:"image" validate:"required"`
-	SSHKeyName  string             `json:"ssh_key_name,omitempty"`
+	SSHKeyName  string             `json:"ssh_key_name" validate:"required"`
 }
 
 // VirtualMachineOptionalFields holds optional fields for VM creation

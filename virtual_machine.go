@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"text/template"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // GenerateTerraformConfig generates the Terraform generic configuration
@@ -12,18 +14,17 @@ func (t *TerraluImpl) GenerateTerraformGenericProviderConfig() (string, error) {
 		return "", fmt.Errorf("credentials are not set")
 	}
 	const terraformTemplate = `terraform {
-		required_providers {
-		  mgc = {
+	required_providers {
+		mgc = {
 			source = "magalucloud/mgc"
-		  }
 		}
-	  }
-	  provider "mgc" {
-		alias    = "{{ .Alias }}"
-		region   = "{{ .Region }}"
-		api_key  = "{{ .ApiKey }}"
-	  }
-	  `
+	}
+}
+provider "mgc" {
+	alias    = "{{ .Alias }}"
+	region   = "{{ .Region }}"
+	api_key  = "{{ .ApiKey }}"
+}`
 
 	tmpl, err := template.New("terraform").Parse(terraformTemplate)
 	if err != nil {
@@ -41,6 +42,12 @@ func (t *TerraluImpl) GenerateTerraformGenericProviderConfig() (string, error) {
 
 // GenerateTerraformConfig generates the Terraform configuration based on the VM and personal information
 func (t *TerraluImpl) GenerateTerraformVirtualMachineConfig(vm *VirtualMachineInstance) (string, error) {
+	validate := validator.New()
+	err := validate.Struct(vm)
+	if err != nil {
+		return "", fmt.Errorf("error validating the virtual machine instance: %w", err)
+	}
+
 	const terraformTemplate = `
 resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
   provider      = mgc.{{ .Alias }}
@@ -55,8 +62,7 @@ resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
   {{- if .OptionalFields.NameIsPrefix }}
   name_is_prefix = true
   {{- end }}
-
-  network {
+  network = {
     associate_public_ip = {{ .OptionalFields.Network.AssociatePublicIP }}
     {{- if .OptionalFields.Network.DeletePublicIP }}
     delete_public_ip    = {{ .OptionalFields.Network.DeletePublicIP }}
@@ -73,9 +79,7 @@ resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
     {{- end }}
   }
 
-  {{- if .RequiredFields.SSHKeyName }}
   ssh_key_name = "{{ .RequiredFields.SSHKeyName }}"
-  {{- end }}
 }
 `
 

@@ -175,7 +175,7 @@ func TestTerraluImpl_Save(t *testing.T) {
 // func TestGenerate(t *testing.T) {
 // 	pinfo := &TerraluProviderInfo{
 // 		Alias:     "test",
-// 		Region:    "us-east-1",
+// 		Region:    "br-se1",
 // 		ApiKey:    "access",
 // 		KeyID:     "key",
 // 		KeySecret: "secret",
@@ -184,16 +184,14 @@ func TestTerraluImpl_Save(t *testing.T) {
 // 		RequiredFields: VirtualMachineRequiredFields{
 // 			Name: "test",
 // 			MachineType: &MachineTypeSchema{
-// 				Name: "t2.micro",
+// 				Name: "cloud-bs1.xsmall",
 // 			},
 // 			Image: &ImageSchema{
-// 				Name: "ami-name-123456",
+// 				Name: "cloud-ubuntu-22.04 LTS",
 // 			},
 // 		},
 // 		// Inject nil to cause execution error
-// 		OptionalFields: VirtualMachineOptionalFields{
-// 			Network: nil,
-// 		},
+// 		OptionalFields: VirtualMachineOptionalFields{},
 // 	}
 // 	terralu := NewTerralu(pinfo, uuid.New())
 // 	_, err := terralu.GenerateTerraformGenericProviderConfig()
@@ -249,6 +247,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
 						Image: &ImageSchema{
 							Name: "ami-name-123456",
 						},
+						SSHKeyName: "test-key",
 					},
 					OptionalFields: VirtualMachineOptionalFields{},
 				},
@@ -269,10 +268,11 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
           image         = {
         	name  = "ami-name-123456"
           }
-        
-          network {
+          network = {
             associate_public_ip = false
           }
+        
+          ssh_key_name = "test-key"
         }`,
 			wantErr: false,
 		},
@@ -334,7 +334,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
         	name  = "ami-prod-789012"
           }
           name_is_prefix = true
-          network {
+          network = {
             associate_public_ip = true
             interface {
               security_group_ids = ["sg-12345"]
@@ -342,6 +342,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
             }
             vpc_id = "vpc-abcdef"
           }
+        
           ssh_key_name = "prod-keypair"
         }`,
 			wantErr: false,
@@ -398,6 +399,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
 						Image: &ImageSchema{
 							Name: "ami-name-123456",
 						},
+						SSHKeyName: "test-key",
 					},
 					// Inject nil to cause execution error
 					OptionalFields: VirtualMachineOptionalFields{},
@@ -420,10 +422,11 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
           image         = {
         	name  = "ami-name-123456"
           }
-        
-          network {
+          network = {
             associate_public_ip = false
           }
+        
+          ssh_key_name = "test-key"
         }`,
 			wantErr: false,
 		},
@@ -435,7 +438,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
 
 			got, err := tr.GenerateTerraformVirtualMachineConfig(tt.args.vm)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("GenerateTerraformVirtualMachineConfig() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("%s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 				return
 			}
 
