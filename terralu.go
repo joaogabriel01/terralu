@@ -1,32 +1,34 @@
 package terralu
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/google/uuid"
+)
 
 // TerraluImpl is the concrete implementation of the Terralu and TerraformGenerator interfaces
 type TerraluImpl struct {
 	credentials *TerraluProviderInfo
 	buffer      bytes.Buffer
-	filename    string
-}
-
-// Set stores the credentials and region
-func (t *TerraluImpl) Set(info *TerraluProviderInfo) {
-	t.credentials = info
+	dir         string
+	mainPath    string
 }
 
 // Get returns the credentials and region
-func (t *TerraluImpl) Get() *TerraluProviderInfo {
+func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 	return t.credentials
 }
 
-func NewTerralu(credentials *TerraluProviderInfo, filename string) Terralu {
-	return &TerraluImpl{
+// NewTerralu creates a new Terralu instance
+func NewTerralu(credentials *TerraluProviderInfo) Terralu {
+	impl := &TerraluImpl{
 		credentials: credentials,
-		filename:    filename,
+		dir:         uuid.New().String(),
 		buffer:      bytes.Buffer{},
 	}
-}
-
-func (t *TerraluImpl) GetTerraluVirtualMachine() TerraformVirtualMachineGenerator{
-	return t
+	err := impl.CreateDirectory()
+	if err != nil {
+		panic(err)
+	}
+	return impl
 }

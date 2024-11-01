@@ -1,39 +1,74 @@
 package terralu
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"text/template"
+
+	"github.com/go-playground/validator/v10"
 )
 
 // GenerateTerraformConfig generates the Terraform generic configuration
-func (t *TerraluImpl) GenerateTerraformGenericProviderConfig(vm *VirtualMachineInstance, pInfo *TerraluProviderInfo) (string, error) {
+func (t *TerraluImpl) GenerateTerraformGenericProviderConfig() (string, error) {
+	if t.credentials == nil {
+		return "", fmt.Errorf("credentials are not set")
+	}
 	const terraformTemplate = `terraform {
-	  required_providers {
+	required_providers {
 		mgc = {
-		  source = "magalucloud/mgc"
+			source = "magalucloud/mgc"
 		}
 	}
+}
+provider "mgc" {
+	alias    = "{{ .Alias }}"
+	region   = "{{ .Region }}"
+	api_key  = "{{ .ApiKey }}"
 }`
-	return terraformTemplate, nil
+
+	tmpl, err := template.New("terraform").Parse(terraformTemplate)
+	if err != nil {
+		return "", fmt.Errorf("error parsing the template: %w", err)
+	}
+
+	// Execute the template with the provided data
+	err = tmpl.Execute(&t.buffer, *t.credentials)
+	if err != nil {
+		return "", fmt.Errorf("error executing the template: %w", err)
+	}
+	t.buffer.WriteString("\n")
+	manifest := t.buffer.String()
+	err = t.AppendOnFile()
+	if err != nil {
+		return "", fmt.Errorf("error appending to the file: %w", err)
+	}
+	return manifest, nil
 }
 
 // GenerateTerraformConfig generates the Terraform configuration based on the VM and personal information
-func (t *TerraluImpl) GenerateTerraformVirtualMachineConfig(vm *VirtualMachineInstance, pInfo *TerraluProviderInfo) (string, error) {
+func (t *TerraluImpl) GenerateTerraformVirtualMachineConfig(vm *VirtualMachineInstance) (string, error) {
+	validate := validator.New()
+	err := validate.Struct(vm)
+	if err != nil {
+		return "", fmt.Errorf("error validating the virtual machine instance: %w", err)
+	}
+
 	const terraformTemplate = `
 resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
   provider      = mgc.{{ .Alias }}
   name          = "{{ .RequiredFields.Name }}"
   machine_type  = {
 	name  = "{{ .RequiredFields.MachineType.Name }}"
-  image         = "{{ .RequiredFields.Image.Name }}"
+  }
+  image         = {
+	name  = "{{ .RequiredFields.Image.Name }}"
+  }
   
   {{- if .OptionalFields.NameIsPrefix }}
   name_is_prefix = true
   {{- end }}
-
-  {{- if .OptionalFields.Network }}
-  network {
+  network = {
     associate_public_ip = {{ .OptionalFields.Network.AssociatePublicIP }}
     {{- if .OptionalFields.Network.DeletePublicIP }}
     delete_public_ip    = {{ .OptionalFields.Network.DeletePublicIP }}
@@ -48,15 +83,9 @@ resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
     {{- if .OptionalFields.Network.VPC }}
     vpc_id = "{{ .OptionalFields.Network.VPC.ID }}"
     {{- end }}
-    private_address = "{{ .OptionalFields.Network.PrivateAddress }}"
-    public_address  = "{{ .OptionalFields.Network.PublicAddress }}"
-    ipv6            = "{{ .OptionalFields.Network.IPv6 }}"
   }
-  {{- end }}
 
-  {{- if .RequiredFields.SSHKeyName }}
-  ssh_key_name = "{{ .OptionalFields.SSHKeyName }}"
-  {{- end }}
+  ssh_key_name = "{{ .RequiredFields.SSHKeyName }}"
 }
 `
 
@@ -71,33 +100,55 @@ resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
 		TerraluProviderInfo
 	}{
 		VirtualMachineInstance: *vm,
-		TerraluProviderInfo:    *pInfo,
+		TerraluProviderInfo:    *t.credentials,
 	})
 	if err != nil {
 		return "", fmt.Errorf("error executing the template: %w", err)
 	}
-
-	return t.buffer.String(), nil
+	t.buffer.WriteString("\n")
+	manifest := t.buffer.String()
+	err = t.AppendOnFile()
+	if err != nil {
+		return "", fmt.Errorf("error appending to the file: %w", err)
+	}
+	return manifest, nil
 }
 
-// Save saves the buffer content to a file
-func (t *TerraluImpl) Save() error {
-	if t.buffer.Len() == 0 {
-		return fmt.Errorf("buffer is empty, nothing to save")
+// CreateDirectory creates a directory to save the Terraform configuration
+func (t *TerraluImpl) CreateDirectory() error {
+	actualDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error getting the current directory: %w", err)
 	}
-
-	// Create or overwrite the file
-	file, err := os.Create(t.filename)
+	newDir := fmt.Sprintf("%s/%s/", actualDir, t.dir)
+	// Make directory if it doesn't exist
+	err = os.MkdirAll(newDir, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("error creating the directory: %w", err)
+	}
+	t.mainPath = newDir + "main.tf"
+	file, err := os.Create(t.mainPath)
 	if err != nil {
 		return fmt.Errorf("error creating the file: %w", err)
 	}
 	defer file.Close()
+	return nil
+}
+
+// Save saves the buffer content to a file
+func (t *TerraluImpl) AppendOnFile() error {
+	// Open the file in write-only mode, creating it if it doesn't exist
+	file, err := os.OpenFile(t.mainPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening the file: %w", err)
+	}
+	defer file.Close()
 
 	// Write the buffer to the file
-	_, err = file.Write(t.buffer.Bytes())
+	_, err = file.WriteString(t.buffer.String())
 	if err != nil {
 		return fmt.Errorf("error writing to the file: %w", err)
 	}
-
+	t.buffer = bytes.Buffer{}
 	return nil
 }
