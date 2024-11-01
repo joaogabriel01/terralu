@@ -75,7 +75,7 @@ func TestTerraluImpl_GenerateTerraformGenericProviderConfig(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // captura a variável para evitar problemas com goroutines
 		t.Run(tt.name, func(t *testing.T) {
-			tr := NewTerralu(tt.input, uuid.New())
+			tr := NewTerralu(tt.input)
 			got, err := tr.GenerateTerraformGenericProviderConfig()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("%s error = %v, wantErr %v", tt.name, err, tt.wantErr)
@@ -94,64 +94,61 @@ func TestTerraluImpl_GenerateTerraformGenericProviderConfig(t *testing.T) {
 // TestTerraluImpl_Save tests the Save method
 func TestTerraluImpl_Save(t *testing.T) {
 	type fields struct {
-		buffer   bytes.Buffer
-		filename string
+		buffer  bytes.Buffer
+		dirname string
 	}
 	tests := []struct {
 		name      string
 		fields    fields
 		wantErr   bool
-		assertion func(t *testing.T, filename string)
+		assertion func(t *testing.T, dirname string)
 	}{
 		{
 			name: "Save with Non-Empty Buffer",
 			fields: fields{
-				buffer:   *bytes.NewBufferString("test content"),
-				filename: uuid.New().String(),
+				buffer:  *bytes.NewBufferString("test content"),
+				dirname: uuid.New().String(),
 			},
 			wantErr: false,
-			assertion: func(t *testing.T, filename string) {
+			assertion: func(t *testing.T, dirname string) {
 				// Read the file and verify its content
-				content, err := os.ReadFile(filename)
-				if err != nil {
-					t.Fatalf("Failed to read the file: %v", err)
-				}
-				if string(content) != "test content" {
-					t.Errorf("File content = %v, want %v", string(content), "test content")
+				_, err := os.Stat(dirname)
+				if os.IsNotExist(err) {
+					t.Errorf("File not exists")
 				}
 				// Clean up the file
-				os.Remove(filename)
+				os.RemoveAll(dirname)
 			},
 		},
 		{
 			name: "Save with Empty Buffer",
 			fields: fields{
-				buffer:   bytes.Buffer{},
-				filename: uuid.New().String(),
+				buffer:  bytes.Buffer{},
+				dirname: uuid.New().String(),
 			},
 			wantErr: true,
-			assertion: func(t *testing.T, filename string) {
+			assertion: func(t *testing.T, dirname string) {
 				// Ensure the file was not created
-				if _, err := os.Stat(filename); !errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat(dirname); !errors.Is(err, os.ErrNotExist) {
 					t.Errorf("File should not exist, but it does")
 					// Clean up if exists
-					os.Remove(filename)
+					os.Remove(dirname)
 				}
 			},
 		},
 		{
-			name: "Save with Invalid Filename",
+			name: "Save with Invalid dirname",
 			fields: fields{
-				buffer:   *bytes.NewBufferString("invalid filename test"),
-				filename: string([]byte{0x00, 0x01, 0x02}), // Invalid filename
+				buffer:  *bytes.NewBufferString("invalid dirname test"),
+				dirname: string([]byte{0x00, 0x01, 0x02}), // Invalid dirname
 			},
 			wantErr: true,
-			assertion: func(t *testing.T, filename string) {
+			assertion: func(t *testing.T, dirname string) {
 				// No file should be created
-				if _, err := os.Stat(filename); !strings.Contains(err.Error(), os.ErrInvalid.Error()) {
+				if _, err := os.Stat(dirname); !strings.Contains(err.Error(), os.ErrInvalid.Error()) {
 					t.Errorf(t.Name() + ": " + err.Error())
 					// Clean up if exists
-					os.Remove(filename)
+					os.Remove(dirname)
 				}
 			},
 		},
@@ -160,56 +157,56 @@ func TestTerraluImpl_Save(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := &TerraluImpl{
-				buffer:   tt.fields.buffer,
-				filename: tt.fields.filename,
+				buffer: tt.fields.buffer,
+				dir:    tt.fields.dirname,
 			}
 			err := tr.Save()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			tt.assertion(t, tt.fields.filename)
+			tt.assertion(t, tt.fields.dirname)
 		})
 	}
 }
 
-// func TestGenerate(t *testing.T) {
-// 	pinfo := &TerraluProviderInfo{
-// 		Alias:     "test",
-// 		Region:    "br-se1",
-// 		ApiKey:    "access",
-// 		KeyID:     "key",
-// 		KeySecret: "secret",
-// 	}
-// 	vm := &VirtualMachineInstance{
-// 		RequiredFields: VirtualMachineRequiredFields{
-// 			Name: "test",
-// 			MachineType: &MachineTypeSchema{
-// 				Name: "cloud-bs1.xsmall",
-// 			},
-// 			Image: &ImageSchema{
-// 				Name: "cloud-ubuntu-22.04 LTS",
-// 			},
-// 			SSHKeyName: "rafaellindo",
-// 		},
-// 		// Inject nil to cause execution error
-// 		OptionalFields: VirtualMachineOptionalFields{},
-// 	}
-// 	terralu := NewTerralu(pinfo, uuid.New())
-// 	_, err := terralu.GenerateTerraformGenericProviderConfig()
-// 	if err != nil {
-// 		t.Errorf("Err on GenerateTerraformGenericProviderConfig: %v", err)
-// 	}
-// 	_, err = terralu.GenerateTerraformVirtualMachineConfig(vm)
-// 	if err != nil {
-// 		t.Errorf("Err on GenerateTerraformVirtualMachineConfig: %v", err)
-// 	}
+func TestGenerate(t *testing.T) {
+	pinfo := &TerraluProviderInfo{
+		Alias:     "test",
+		Region:    "br-se1",
+		ApiKey:    "access",
+		KeyID:     "key",
+		KeySecret: "secret",
+	}
+	vm := &VirtualMachineInstance{
+		RequiredFields: VirtualMachineRequiredFields{
+			Name: "test",
+			MachineType: &MachineTypeSchema{
+				Name: "cloud-bs1.xsmall",
+			},
+			Image: &ImageSchema{
+				Name: "cloud-ubuntu-22.04 LTS",
+			},
+			SSHKeyName: "rafaellindo",
+		},
+		// Inject nil to cause execution error
+		OptionalFields: VirtualMachineOptionalFields{},
+	}
+	terralu := NewTerralu(pinfo)
+	_, err := terralu.GenerateTerraformGenericProviderConfig()
+	if err != nil {
+		t.Errorf("Err on GenerateTerraformGenericProviderConfig: %v", err)
+	}
+	_, err = terralu.GenerateTerraformVirtualMachineConfig(vm)
+	if err != nil {
+		t.Errorf("Err on GenerateTerraformVirtualMachineConfig: %v", err)
+	}
 
-// 	err = terralu.Save()
+	err = terralu.Save()
 
-// 	if err != nil {
-// 		t.Fatalf("Error saving file %s", err)
-// 	}
-// }
+	if err != nil {
+		t.Fatalf("Error saving file %s", err)
+	}
+}
 
 // TestGenerateTerraformVirtualMachineConfig tests the GenerateTerraformVirtualMachineConfig method
 func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
@@ -435,7 +432,7 @@ func TestTerraluImpl_GenerateTerraformVirtualMachineConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tr := NewTerralu(tt.args.pInfo, uuid.New())
+			tr := NewTerralu(tt.args.pInfo)
 
 			got, err := tr.GenerateTerraformVirtualMachineConfig(tt.args.vm)
 			if (err != nil) != tt.wantErr {

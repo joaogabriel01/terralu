@@ -105,12 +105,21 @@ resource "mgc_virtual_machine_instances" "{{ .RequiredFields.Name }}" {
 
 // Save saves the buffer content to a file
 func (t *TerraluImpl) Save() error {
+	actualDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error getting the current directory: %w", err)
+	}
+	newDir := fmt.Sprintf("%s/%s/", actualDir, t.dir)
 	if t.buffer.Len() == 0 {
 		return fmt.Errorf("buffer is empty, nothing to save")
 	}
-
+	// Make directory if it doesn't exist
+	err = os.MkdirAll(newDir, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("error creating the directory: %w", err)
+	}
 	// Create or overwrite the file
-	file, err := os.Create(t.filename)
+	file, err := os.Create(newDir + "main.tf")
 	if err != nil {
 		return fmt.Errorf("error creating the file: %w", err)
 	}

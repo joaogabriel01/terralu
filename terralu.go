@@ -10,7 +10,7 @@ import (
 type TerraluImpl struct {
 	credentials *TerraluProviderInfo
 	buffer      bytes.Buffer
-	filename    string
+	dir         string
 }
 
 // Get returns the credentials and region
@@ -21,7 +21,7 @@ func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 func NewTerralu(credentials *TerraluProviderInfo) Terralu {
 	return &TerraluImpl{
 		credentials: credentials,
-		filename:    uuid.New().String(),
+		dir:         uuid.New().String(),
 		buffer:      bytes.Buffer{},
 	}
 }
