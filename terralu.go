@@ -18,10 +18,10 @@ func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 	return t.credentials
 }
 
-func NewTerralu(credentials *TerraluProviderInfo, uuid uuid.UUID) Terralu {
+func NewTerralu(credentials *TerraluProviderInfo) Terralu {
 	return &TerraluImpl{
 		credentials: credentials,
-		filename:    uuid.String(),
+		filename:    uuid.New().String(),
 		buffer:      bytes.Buffer{},
 	}
 }
