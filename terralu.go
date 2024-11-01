@@ -1,6 +1,10 @@
 package terralu
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/google/uuid"
+)
 
 // TerraluImpl is the concrete implementation of the Terralu and TerraformGenerator interfaces
 type TerraluImpl struct {
@@ -9,24 +13,19 @@ type TerraluImpl struct {
 	filename    string
 }
 
-// Set stores the credentials and region
-func (t *TerraluImpl) Set(info *TerraluProviderInfo) {
-	t.credentials = info
-}
-
 // Get returns the credentials and region
-func (t *TerraluImpl) Get() *TerraluProviderInfo {
+func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 	return t.credentials
 }
 
-func NewTerralu(credentials *TerraluProviderInfo, filename string) Terralu {
+func NewTerralu(credentials *TerraluProviderInfo, uuid uuid.UUID) Terralu {
 	return &TerraluImpl{
 		credentials: credentials,
-		filename:    filename,
+		filename:    uuid.String(),
 		buffer:      bytes.Buffer{},
 	}
 }
 
-func (t *TerraluImpl) GetTerraluVirtualMachine() TerraformVirtualMachineGenerator{
+func (t *TerraluImpl) GetTerraluVirtualMachine() TerraformVirtualMachineGenerator {
 	return t
 }

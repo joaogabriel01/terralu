@@ -24,8 +24,8 @@ type VirtualMachineRequiredFields struct {
 
 // VirtualMachineOptionalFields holds optional fields for VM creation
 type VirtualMachineOptionalFields struct {
-	NameIsPrefix bool           `json:"name_is_prefix,omitempty"`
-	Network      *NetworkSchema `json:"network,omitempty"`
+	NameIsPrefix bool          `json:"name_is_prefix,omitempty"`
+	Network      NetworkSchema `json:"network,omitempty"`
 }
 
 // ImageSchema represents the nested schema for image configuration
@@ -40,7 +40,7 @@ type MachineTypeSchema struct {
 
 // NetworkSchema holds the network configuration details
 type NetworkSchema struct {
-	AssociatePublicIP bool              `json:"associate_public_ip" validate:"required"`
+	AssociatePublicIP bool              `json:"associate_public_ip"`
 	DeletePublicIP    bool              `json:"delete_public_ip,omitempty"`
 	Interface         *NetworkInterface `json:"interface,omitempty"`
 	VPC               *VPCSchema        `json:"vpc,omitempty"`
