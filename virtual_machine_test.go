@@ -189,6 +189,7 @@ func TestTerraluImpl_Save(t *testing.T) {
 // 			Image: &ImageSchema{
 // 				Name: "cloud-ubuntu-22.04 LTS",
 // 			},
+// 			SSHKeyName: "rafaellindo",
 // 		},
 // 		// Inject nil to cause execution error
 // 		OptionalFields: VirtualMachineOptionalFields{},
