@@ -11,6 +11,7 @@ type TerraluImpl struct {
 	credentials *TerraluProviderInfo
 	buffer      bytes.Buffer
 	dir         string
+	mainPath    string
 }
 
 // Get returns the credentials and region
@@ -19,11 +20,16 @@ func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 }
 
 func NewTerralu(credentials *TerraluProviderInfo) Terralu {
-	return &TerraluImpl{
+	impl := &TerraluImpl{
 		credentials: credentials,
 		dir:         uuid.New().String(),
 		buffer:      bytes.Buffer{},
 	}
+	err := impl.CreateDirectory()
+	if err != nil {
+		panic(err)
+	}
+	return impl
 }
 
 func (t *TerraluImpl) GetTerraluVirtualMachine() TerraformVirtualMachineGenerator {

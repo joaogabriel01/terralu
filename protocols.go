@@ -3,7 +3,8 @@ package terralu
 // Terralu is an interface for managing virtual machine instances
 type Terralu interface {
 	TerraformGenerator
-	Save() error
+	CreateDirectory() error
+	AppendOnFile() error
 }
 
 // TerraformGenerator defines the contract for generating Terraform code

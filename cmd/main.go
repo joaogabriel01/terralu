@@ -60,7 +60,7 @@ func main() {
 			terraluProvider = terralu.NewTerralu(&data.TerraluProviderInfo)
 			_, err := terraluProvider.GenerateTerraformGenericProviderConfig()
 			if err != nil {
-				panic("deu ruim")
+				panic("Error generating provider config: " + err.Error())
 			}
 
 			chooseService()
@@ -149,7 +149,6 @@ func showProvider(vmData *VMData) {
 		SetText(response)
 
 	text.SetBorder(true).SetTitle("VM Data").SetTitleAlign(tview.AlignLeft)
-	terraluProvider.Save()
 	pages.AddPage("vmData", text, true, true)
 	pages.SwitchToPage("vmData")
 }

@@ -2,10 +2,10 @@ package terralu
 
 import (
 	"bytes"
+	"path/filepath"
 
 	"github.com/google/go-cmp/cmp"
 
-	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -101,7 +101,7 @@ func TestTerraluImpl_Save(t *testing.T) {
 		name      string
 		fields    fields
 		wantErr   bool
-		assertion func(t *testing.T, dirname string)
+		assertion func(t *testing.T, mainPath string)
 	}{
 		{
 			name: "Save with Non-Empty Buffer",
@@ -110,30 +110,13 @@ func TestTerraluImpl_Save(t *testing.T) {
 				dirname: uuid.New().String(),
 			},
 			wantErr: false,
-			assertion: func(t *testing.T, dirname string) {
-				// Read the file and verify its content
-				_, err := os.Stat(dirname)
+			assertion: func(t *testing.T, mainPath string) {
+				_, err := os.Stat(mainPath)
 				if os.IsNotExist(err) {
 					t.Errorf("File not exists")
 				}
 				// Clean up the file
-				os.RemoveAll(dirname)
-			},
-		},
-		{
-			name: "Save with Empty Buffer",
-			fields: fields{
-				buffer:  bytes.Buffer{},
-				dirname: uuid.New().String(),
-			},
-			wantErr: true,
-			assertion: func(t *testing.T, dirname string) {
-				// Ensure the file was not created
-				if _, err := os.Stat(dirname); !errors.Is(err, os.ErrNotExist) {
-					t.Errorf("File should not exist, but it does")
-					// Clean up if exists
-					os.Remove(dirname)
-				}
+				os.RemoveAll(filepath.Dir(mainPath))
 			},
 		},
 		{
@@ -143,12 +126,11 @@ func TestTerraluImpl_Save(t *testing.T) {
 				dirname: string([]byte{0x00, 0x01, 0x02}), // Invalid dirname
 			},
 			wantErr: true,
-			assertion: func(t *testing.T, dirname string) {
+			assertion: func(t *testing.T, mainPath string) {
 				// No file should be created
-				if _, err := os.Stat(dirname); !strings.Contains(err.Error(), os.ErrInvalid.Error()) {
-					t.Errorf(t.Name() + ": " + err.Error())
-					// Clean up if exists
-					os.Remove(dirname)
+				if _, err := os.Stat(mainPath); err == nil {
+					t.Errorf("File should not exist, but it does")
+					os.RemoveAll(filepath.Dir(mainPath))
 				}
 			},
 		},
@@ -157,14 +139,26 @@ func TestTerraluImpl_Save(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := &TerraluImpl{
-				buffer: tt.fields.buffer,
-				dir:    tt.fields.dirname,
+				buffer:   tt.fields.buffer,
+				mainPath: filepath.Join(tt.fields.dirname, "main.tf"),
 			}
-			err := tr.Save()
+
+			// Only create directory if the test case isn't meant to test invalid directory names
+			if tt.name != "Save with Invalid dirname" {
+				err := os.MkdirAll(tt.fields.dirname, 0755)
+				if err != nil {
+					t.Fatalf("%s error creating directory = %v", tt.name, err)
+				}
+			}
+
+			// Run the AppendOnFile method
+			err := tr.AppendOnFile()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Save() error = %v, wantErr %v", err, tt.wantErr)
+				t.Fatalf("%s error = %v, wantErr %v", tt.name, err, tt.wantErr)
 			}
-			tt.assertion(t, tt.fields.dirname)
+
+			// Run the custom assertion for the test
+			tt.assertion(t, tr.mainPath)
 		})
 	}
 }
@@ -201,10 +195,14 @@ func TestGenerate(t *testing.T) {
 		t.Errorf("Err on GenerateTerraformVirtualMachineConfig: %v", err)
 	}
 
-	err = terralu.Save()
-
+	err = terralu.CreateDirectory()
 	if err != nil {
-		t.Fatalf("Error saving file %s", err)
+		t.Fatalf("Error creating directory %s", err)
+	}
+
+	err = terralu.AppendOnFile()
+	if err != nil {
+		t.Fatalf("Error appending on file %s", err)
 	}
 }
 
