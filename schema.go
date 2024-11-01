@@ -19,7 +19,7 @@ type VirtualMachineRequiredFields struct {
 	Name        string             `json:"name" validate:"required"`
 	MachineType *MachineTypeSchema `json:"machine_type" validate:"required"`
 	Image       *ImageSchema       `json:"image" validate:"required"`
-	SSHKeyName  *string            `json:"ssh_key_name,omitempty"`
+	SSHKeyName  string             `json:"ssh_key_name,omitempty"`
 }
 
 // VirtualMachineOptionalFields holds optional fields for VM creation
@@ -41,7 +41,7 @@ type MachineTypeSchema struct {
 // NetworkSchema holds the network configuration details
 type NetworkSchema struct {
 	AssociatePublicIP bool              `json:"associate_public_ip" validate:"required"`
-	DeletePublicIP    *bool             `json:"delete_public_ip,omitempty"`
+	DeletePublicIP    bool              `json:"delete_public_ip,omitempty"`
 	Interface         *NetworkInterface `json:"interface,omitempty"`
 	VPC               *VPCSchema        `json:"vpc,omitempty"`
 }
