@@ -53,7 +53,7 @@ func main() {
 		AddInputField("Alias", "", 50, nil, func(text string) {
 			data.Alias = text
 		}).
-		AddDropDown("Template", []string{"Nativo", "Customizado"}, 0, func(option string, optionIndex int) {
+		AddDropDown("Template", []string{"Native", "Customized"}, 0, func(option string, optionIndex int) {
 			data.Template = option
 		}).
 		AddButton("Save", func() {
@@ -96,7 +96,7 @@ func chooseService() {
 			pages.SwitchToPage("main")
 		})
 
-	form.SetBorder(true).SetTitle("Escolha o serviço").SetTitleAlign(tview.AlignLeft)
+	form.SetBorder(true).SetTitle("Choose the service").SetTitleAlign(tview.AlignLeft)
 
 	pages.AddPage("chooseService", form, true, true)
 	pages.SwitchToPage("chooseService")
@@ -155,7 +155,7 @@ func showProvider(vmData *VMData) {
 
 func showNotImplemented() {
 	modal := tview.NewModal().
-		SetText("Esta funcionalidade não está implementada ainda.").
+		SetText("This functionality is not implemented yet.").
 		AddButtons([]string{"OK"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			pages.SwitchToPage("chooseService")

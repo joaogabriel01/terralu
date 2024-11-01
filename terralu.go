@@ -19,6 +19,7 @@ func (t *TerraluImpl) GetTerraluProviderInfo() *TerraluProviderInfo {
 	return t.credentials
 }
 
+// NewTerralu creates a new Terralu instance
 func NewTerralu(credentials *TerraluProviderInfo) Terralu {
 	impl := &TerraluImpl{
 		credentials: credentials,
@@ -30,8 +31,4 @@ func NewTerralu(credentials *TerraluProviderInfo) Terralu {
 		panic(err)
 	}
 	return impl
-}
-
-func (t *TerraluImpl) GetTerraluVirtualMachine() TerraformVirtualMachineGenerator {
-	return t
 }
